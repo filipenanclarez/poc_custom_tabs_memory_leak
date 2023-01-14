@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(MyApp());
 
@@ -20,7 +21,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> data = ['Page 0' /*, 'Page 1', 'Page 2'*/];
+  List<Map<String, dynamic>> data = [
+    {"titulo": "Page 0"}
+  ];
   int initPosition = 0;
 
   static final customTabState = new GlobalKey<_CustomTabsState>();
@@ -29,7 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       customTabState.currentState!.controller!.addListener(() {
-        debugPrint('addListener');
+        // debugPrint('addListener');
       });
     });
 
@@ -39,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     customTabState.currentState!.controller!.removeListener(() {
-      debugPrint('removeListener');
+      // debugPrint('removeListener');
     });
     super.dispose();
   }
@@ -52,21 +55,41 @@ class _MyHomePageState extends State<MyHomePage> {
           key: customTabState,
           initPosition: initPosition,
           itemCount: data.length,
-          tabBuilder: (context, index) => Tab(text: data[index]),
-          pageBuilder: (context, index) => Center(child: Text(data[index])),
+          tabBuilder: (context, index) => Tab(text: data[index]['titulo']),
+          pageBuilder: (context, index) => TabContent(
+            key: UniqueKey(),
+            titulo: index.toString(),
+            cover: data[index]['cover'],
+          ),
           onPositionChange: (index) {
-            print('current position: $index');
+            // debugPrint('current position: $index');
             initPosition = index;
           },
-          onScroll: (position) => print('$position'),
+          // onScroll: (position) => debugPrint('$position'),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          for (var i = 0; i < 10; i++) {
+          ByteData assetImageByteData =
+              await rootBundle.load('assets/image.jpg');
+
+          Uint8List assetImageUint8List =
+              assetImageByteData.buffer.asUint8List();
+
+          // data.add('Page ${data.length}');
+          // data.add(
+          //     {'titulo': 'Page ${data.length}', 'cover': assetImageUint8List});
+          // setState(() {});
+          // return;
+
+          for (var i = 0; i < 13; i++) {
             for (var j = 0; j < 100; j++) {
               setState(() {
-                data.add('Page ${data.length}');
+                // data.add('Page ${data.length}');
+                data.add({
+                  'titulo': 'Page ${data.length}',
+                  'cover': assetImageUint8List
+                });
               });
 
               setState(() {});
@@ -161,7 +184,8 @@ class _CustomTabsState extends State<CustomTabView>
       if (widget.initPosition != null) {
         _currentPosition = widget.initPosition;
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-          if (!createTabCompleter.isCompleted) createTabCompleter.complete();
+          if (createTabCompleter != null && !createTabCompleter.isCompleted)
+            createTabCompleter.complete();
         });
       }
 
@@ -256,5 +280,45 @@ class _CustomTabsState extends State<CustomTabView>
     if (widget.onScroll is ValueChanged<double>) {
       widget.onScroll!(controller!.animation!.value);
     }
+  }
+}
+
+class TabContent extends StatefulWidget {
+  final String titulo;
+  Uint8List? cover;
+  TabContent({super.key, required this.titulo, this.cover});
+
+  @override
+  State<TabContent> createState() => _TabContentState();
+}
+
+class _TabContentState extends State<TabContent> {
+  @override
+  void initState() {
+    // WidgetsBinding.instance.addPostFrameCallback((_) async {
+    //   // debugPrint('terminei de carregar a tab');
+    // });
+
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Expanded(
+            child: widget.cover != null
+                ? Image.memory(
+                    widget.cover!,
+                    fit: BoxFit.fill,
+                    // width: 100,
+                    // height: 100,
+                  )
+                : Container(),
+          )
+        ],
+      ),
+    );
   }
 }
