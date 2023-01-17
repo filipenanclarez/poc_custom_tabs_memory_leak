@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
+
+var interactions = 255;
 
 void main() => runApp(MyApp());
 
@@ -21,9 +24,17 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Map<String, dynamic>> data = [
-    {"titulo": "Page 0"}
+  // List<Map<String, dynamic>> data = [
+  //   {"titulo": "Page 0"}
+  // ];
+
+  List<TabContent> tabContentList = [
+    TabContent(
+      titulo: 'Page 0',
+      changeFactor: 0,
+    )
   ];
+
   int initPosition = 0;
 
   static final customTabState = new GlobalKey<_CustomTabsState>();
@@ -54,13 +65,15 @@ class _MyHomePageState extends State<MyHomePage> {
         child: CustomTabView(
           key: customTabState,
           initPosition: initPosition,
-          itemCount: data.length,
-          tabBuilder: (context, index) => Tab(text: data[index]['titulo']),
-          pageBuilder: (context, index) => TabContent(
-            key: UniqueKey(),
-            titulo: index.toString(),
-            cover: data[index]['cover'],
-          ),
+          itemCount: tabContentList.length,
+          tabBuilder: (context, index) => Text(tabContentList[index].titulo),
+          // pageBuilder: (context, index) => TabContent(
+          //   key: UniqueKey(),
+          //   titulo: index.toString(),
+          //   cover: data[index]['cover'],
+          // ),
+          pageBuilder: (context, index) => tabContentList[index],
+
           onPositionChange: (index) {
             // debugPrint('current position: $index');
             initPosition = index;
@@ -76,43 +89,67 @@ class _MyHomePageState extends State<MyHomePage> {
           Uint8List assetImageUint8List =
               assetImageByteData.buffer.asUint8List();
 
+          var waitTime = 30;
+
           // data.add('Page ${data.length}');
           // data.add(
           //     {'titulo': 'Page ${data.length}', 'cover': assetImageUint8List});
           // setState(() {});
           // return;
 
-          for (var i = 0; i < 13; i++) {
-            for (var j = 0; j < 100; j++) {
+          for (var i = 0; i < 900; i++) {
+            for (var j = 0; j < interactions; j++) {
+              // customTabState.currentState!.controller!
+              //     .animateTo(0, duration: Duration(milliseconds: 100));
+              // await Future.delayed(Duration(milliseconds: waitTime));
               setState(() {
                 // data.add('Page ${data.length}');
-                data.add({
-                  'titulo': 'Page ${data.length}',
-                  'cover': assetImageUint8List
-                });
+                // data.add({
+                //   'titulo': 'Page ${data.length}',
+                //   'cover': assetImageUint8List
+                // });
+                tabContentList.insert(
+                    1,
+                    TabContent(
+                      key: UniqueKey(),
+                      titulo: 'Page ${tabContentList.length}',
+                      cover: assetImageUint8List,
+                      changeFactor: j + 1,
+                    ));
               });
 
               setState(() {});
 
               await customTabState.currentState!.createTabComplete();
 
-              customTabState.currentState!.controller!.animateTo(
-                  data.length - 1,
-                  duration: Duration(milliseconds: 100));
+              customTabState.currentState!.controller!
+                  .animateTo(1, duration: Duration(milliseconds: 25));
 
-              await Future.delayed(Duration(milliseconds: 500));
+              await Future.delayed(Duration(milliseconds: waitTime));
             }
 
-            await Future.delayed(Duration(seconds: 1));
+            await Future.delayed(Duration(seconds: 10));
 
-            for (var j = 0; j < 100; j++) {
+            for (var j = 0; j < interactions; j++) {
+              // customTabState.currentState!.controller!
+              //     .animateTo(0, duration: Duration(milliseconds: 100));
+
+              // await Future.delayed(Duration(milliseconds: waitTime));
+
+              // customTabState.currentState!.controller!
+              //     .animateTo(1, duration: Duration(milliseconds: 100));
+
+              // await Future.delayed(Duration(milliseconds: waitTime));
+
               setState(() {
-                data.removeAt(data.length - 1);
+                // data.removeAt(data.length - 1);
+                tabContentList.removeAt(1);
               });
-              await Future.delayed(Duration(milliseconds: 100));
+
+              await Future.delayed(Duration(milliseconds: waitTime));
             }
 
-            await Future.delayed(Duration(seconds: 1));
+            await Future.delayed(Duration(seconds: 10));
           }
         },
         child: Icon(Icons.add),
@@ -286,13 +323,22 @@ class _CustomTabsState extends State<CustomTabView>
 class TabContent extends StatefulWidget {
   final String titulo;
   Uint8List? cover;
-  TabContent({super.key, required this.titulo, this.cover});
+  int changeFactor;
+  TabContent(
+      {super.key,
+      required this.titulo,
+      this.cover,
+      required this.changeFactor});
 
   @override
   State<TabContent> createState() => _TabContentState();
 }
 
-class _TabContentState extends State<TabContent> {
+class _TabContentState extends State<TabContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     // WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -304,20 +350,39 @@ class _TabContentState extends State<TabContent> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: widget.cover != null
-                ? Image.memory(
+      body: Container(
+        constraints: BoxConstraints.expand(),
+        color: Color.fromRGBO(
+          widget.changeFactor,
+          255 - widget.changeFactor,
+          255 + widget.changeFactor,
+          1,
+        ),
+        child: widget.cover != null
+            ? Transform.rotate(
+                angle: math.pi /
+                    180 *
+                    ((180 / interactions) * widget.changeFactor.toDouble()),
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                      Color.fromRGBO(
+                        widget.changeFactor,
+                        255 - widget.changeFactor,
+                        255 + widget.changeFactor,
+                        1,
+                      ),
+                      BlendMode.modulate),
+                  child: Image.memory(
                     widget.cover!,
                     fit: BoxFit.fill,
                     // width: 100,
                     // height: 100,
-                  )
-                : Container(),
-          )
-        ],
+                  ),
+                ),
+              )
+            : Container(),
       ),
     );
   }
